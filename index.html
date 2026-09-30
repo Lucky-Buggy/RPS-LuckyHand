@@ -8,13 +8,15 @@
 </head>
 <body>
   <main class="table">
-    <h1>RPS: Lucky Hand</h1>
+    <header class="top">
+      <h1>RPS: Lucky Hand</h1>
 
-    <section class="scoreboard" aria-label="Score">
-      <div><span id="score-player">0</span> You</div>
-      <div><span id="score-draws">0</span> Draws</div>
-      <div><span id="score-computer">0</span> Computer</div>
-    </section>
+      <section class="scoreboard" aria-label="Score">
+        <div><span id="score-player">0</span> You</div>
+        <div><span id="score-draws">0</span> Draws</div>
+        <div><span id="score-computer">0</span> Computer</div>
+      </section>
+    </header>
 
     <!-- Computer hand (card backs) -->
     <section class="panel">
@@ -36,7 +38,6 @@
       <div class="result" aria-live="polite">
         <p id="result-plays"></p>
         <p id="result-outcome"></p>
-        <button id="play-again" class="btn primary" hidden>Play Again</button>
       </div>
     </section>
 
@@ -51,8 +52,21 @@
       <button id="switch" class="btn">Switch Card (1 available)</button>
       <button id="confirm-switch" class="btn primary" hidden>Replace card</button>
       <button id="reset" class="btn">Reset Game</button>
+      <button id="play-again" class="btn primary" hidden>Play Again</button>
     </section>
   </main>
+
+  <!-- Confirmation dialog for "Reset Game" -->
+  <div id="reset-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="reset-title" aria-describedby="reset-text" hidden>
+    <div class="modal-box">
+      <h2 id="reset-title">Restart the game?</h2>
+      <p id="reset-text">Your current score and cards will be lost and a new hand will be dealt.</p>
+      <div class="modal-actions">
+        <button id="reset-cancel" class="btn" type="button">Keep playing</button>
+        <button id="reset-confirm" class="btn primary" type="button">Restart</button>
+      </div>
+    </div>
+  </div>
 
   <script src="rpslb.js"></script>
 </body>
