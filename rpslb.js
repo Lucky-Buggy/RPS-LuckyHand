@@ -39,6 +39,9 @@ const confirmSwitchButton = document.getElementById("confirm-switch");
 const switchHintEl = document.getElementById("switch-hint");
 const deckEl = document.getElementById("deck");
 const arenaEl = document.getElementById("arena");
+const resetModalEl = document.getElementById("reset-modal");
+const resetCancelButton = document.getElementById("reset-cancel");
+const resetConfirmButton = document.getElementById("reset-confirm");
 
 function wait(ms) {
   return new Promise(function (resolve) { setTimeout(resolve, ms); });
@@ -334,8 +337,38 @@ function startNewGame() {
   dealCards(gameId);
 }
 
+// ===== Reset confirmation dialog =====
+function openResetModal() {
+  resetModalEl.hidden = false;
+  resetCancelButton.focus(); // safest choice is focused by default
+}
+
+function closeResetModal() {
+  resetModalEl.hidden = true;
+  resetButton.focus();
+}
+
+resetButton.addEventListener("click", openResetModal);
+resetCancelButton.addEventListener("click", closeResetModal);
+resetConfirmButton.addEventListener("click", function () {
+  resetModalEl.hidden = true;
+  startNewGame();
+});
+// click on the dark backdrop closes the dialog
+resetModalEl.addEventListener("click", function (e) {
+  if (e.target === resetModalEl) closeResetModal();
+});
+document.addEventListener("keydown", function (e) {
+  if (resetModalEl.hidden) return;
+  if (e.key === "Escape") closeResetModal();
+  if (e.key === "Tab") { // keep keyboard focus inside the dialog
+    const first = resetCancelButton, last = resetConfirmButton;
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  }
+});
+
 playAgainButton.addEventListener("click", startNewGame);
-resetButton.addEventListener("click", startNewGame);
 switchButton.addEventListener("click", toggleSwitchMode);
 confirmSwitchButton.addEventListener("click", confirmSwitch);
 
