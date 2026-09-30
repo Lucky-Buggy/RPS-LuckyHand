@@ -6,32 +6,39 @@
   --muted: #9a9fa8;
   --accent: #d4a24c;   /* the one accent colour */
   --good: #6fbf8a;
-  --cw: clamp(50px, 15.5vw, 92px);   /* card width: everything scales from this */
+  --vh: 100vh;                       /* fallback for browsers without dvh */
+  --chrome: 335px;                   /* height of everything that is NOT a card (title, labels, buttons...) */
+  /* card width: everything scales from this. It is limited by the screen width AND height,
+     so the whole table fits in the window without scrolling. */
+  --cw: clamp(40px, min(15.5vw, calc((var(--vh) - var(--chrome)) / 4.26)), 92px);
   --r: calc(var(--cw) * 0.1);
 }
+@supports (height: 100dvh) { :root { --vh: 100dvh; } }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
 body {
   margin: 0;
   min-height: 100vh;
+  min-height: 100dvh;
   overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-.table { max-width: 720px; margin: 0 auto; padding: 16px 12px 32px; text-align: center; }
-h1 { margin: 4px 0 12px; font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 600; letter-spacing: 0.04em; }
-h2 { margin: 0 0 12px; font-size: 1rem; font-weight: 500; color: var(--muted); }
+.table { max-width: 760px; margin: 0 auto; padding: 10px 12px 14px; text-align: center; }
+.top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-bottom: 10px; }
+h1 { margin: 0; font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 600; letter-spacing: 0.04em; }
+h2 { margin: 0 0 6px; font-size: 1rem; font-weight: 500; color: var(--muted); }
 .count { margin-left: 6px; color: var(--accent); }
 .label { margin: 8px 0 0; font-size: 0.8rem; color: var(--muted); min-height: 1.2em; }
 
-.scoreboard { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; color: var(--muted); font-size: 0.9rem; }
+.scoreboard { display: flex; justify-content: center; gap: 24px; margin: 0; color: var(--muted); font-size: 0.9rem; }
 .scoreboard span { margin-right: 4px; font-size: 1.3rem; color: var(--text); }
 
 .panel {
-  margin-bottom: 12px;
-  padding: 14px 8px;
+  margin-bottom: 8px;
+  padding: 8px 8px 10px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 14px;
@@ -74,8 +81,15 @@ h2 { margin: 0 0 12px; font-size: 1rem; font-weight: 500; color: var(--muted); }
     repeating-linear-gradient(-45deg, transparent 0 7px, rgba(26, 20, 5, 0.4) 7px 8px);
 }
 .face.back::after { content: ""; position: absolute; inset: 12%; border: 2px solid #1a1405; border-radius: 6px; }
-.face.back::before { content: ""; position: absolute; z-index: 1; left: 50%; top: 50%; width: 30%; aspect-ratio: 1;
+.face.back::before { content: ""; position: absolute; left: 50%; top: 50%; width: 30%; aspect-ratio: 1;
   transform: translate(-50%, -50%) rotate(45deg); background: #1a1405; border: 2px solid #ece8df; }
+/* Pseudo-elements do not inherit backface-visibility, so hide them explicitly:
+   otherwise the diamond shows through the front (picture) side on some phones. */
+.face::before, .face::after { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.face.back { z-index: 1; }
+.face.front { z-index: 2; }
+.card.up .face.back { visibility: hidden; transition: visibility 0s 0.22s; }
+.card:not(.up) .face.front { visibility: hidden; transition: visibility 0s 0.22s; }
 
 /* ---------- Card artwork: the icon images in the images/ folder ---------- */
 .art { flex: 1; display: flex; align-items: center; justify-content: center; margin: 10% 8% 0; min-height: 0; }
@@ -92,10 +106,10 @@ button.card { cursor: pointer; }
 @keyframes flipIn { from { transform: rotateY(0deg); } to { transform: rotateY(180deg); } }
 
 /* ---------- Dealer, deck, arena ---------- */
-.center { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "deck arena" "result result"; gap: 10px 16px; align-items: center; }
+.center { display: grid; grid-template-columns: auto auto 1fr; grid-template-areas: "deck arena result"; gap: 10px 16px; align-items: center; }
 .dealer { grid-area: deck; }
-.arena { grid-area: arena; display: flex; justify-content: center; gap: 14px; min-height: calc(var(--cw) * 1.42); }
-.result { grid-area: result; min-height: 84px; }
+.arena { grid-area: arena; display: flex; justify-content: center; gap: 12px; min-width: calc(var(--cw) * 2 + 12px); min-height: calc(var(--cw) * 1.42); }
+.result { grid-area: result; min-height: 76px; display: flex; flex-direction: column; justify-content: center; }
 .result p { margin: 4px 0; color: var(--muted); }
 #result-outcome { font-size: 1.4rem; font-weight: 600; color: var(--text); }
 #result-outcome.win { color: var(--good); }
@@ -130,237 +144,109 @@ button.card { cursor: pointer; }
 
 
 /* =========================================================
+   CONFIRM DIALOG (same colours / panel style as the game)
+   ========================================================= */
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.65);
+  animation: fadeIn 0.18s;
+}
+.modal-box {
+  width: min(360px, 100%);
+  padding: 22px 18px 18px;
+  text-align: center;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  animation: popIn 0.2s;
+}
+.modal-box h2 { margin: 0 0 8px; font-size: 1.15rem; font-weight: 600; color: var(--text); }
+.modal-box p { margin: 0 0 18px; font-size: 0.9rem; color: var(--muted); }
+.modal-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.modal-actions .btn { flex: 1 1 130px; }
+@keyframes fadeIn { from { opacity: 0; } }
+@keyframes popIn { from { transform: scale(0.94); opacity: 0; } }
+
+
+/* =========================================================
    RESPONSIVE DESIGN
+   The card size (--cw) is calculated from the screen width AND height.
+   --chrome is the height of everything that is not a card; each screen
+   size below sets it so the whole game fits without scrolling.
    ========================================================= */
 
 /* ---------- Tablets and smaller desktops ---------- */
 @media (max-width: 720px) {
-  .table {
-    width: 100%;
-    padding: 12px 10px 20px;
-  }
-
-  .center {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "deck"
-      "arena"
-      "result";
-    gap: 8px;
-  }
-
-  .hand {
-    gap: 5px;
-  }
-
-  .arena {
-    gap: 10px;
-  }
-
-  .panel {
-    padding: 10px 6px;
-    margin-bottom: 8px;
-  }
+  .table { padding: 8px 10px 12px; }
+  .hand { gap: 5px; }
+  .arena { gap: 10px; min-width: calc(var(--cw) * 2 + 10px); }
 }
 
 
-/* ---------- Normal phones ---------- */
+/* ---------- Phones (portrait) ---------- */
 @media (max-width: 480px) {
-  :root {
-    --cw: clamp(48px, 16.5vw, 72px);
-  }
+  :root { --chrome: 330px; }
 
-  .table {
-    padding: 8px 7px 14px;
-  }
+  .table { padding: 6px 7px 10px; }
+  .top { flex-direction: column; gap: 2px; margin-bottom: 6px; }
+  h1 { font-size: 1.25rem; }
+  h2 { margin-bottom: 4px; font-size: 0.9rem; }
+  .scoreboard { gap: 14px; font-size: 0.8rem; }
+  .scoreboard span { font-size: 1.15rem; }
 
-  h1 {
-    margin: 2px 0 6px;
-    font-size: 1.25rem;
-  }
+  .panel { padding: 6px 4px 8px; margin-bottom: 6px; border-radius: 10px; }
+  .hand { gap: 4px; padding-top: 4px; min-height: calc(var(--cw) * 1.42 + 8px); }
+  .label { margin-top: 4px; font-size: 0.75rem; }
 
-  h2 {
-    margin-bottom: 6px;
-    font-size: 0.9rem;
-  }
+  /* deck + played cards stay side by side; the result text goes underneath */
+  .center { grid-template-columns: auto 1fr; grid-template-areas: "deck arena" "result result"; gap: 6px 12px; }
+  .arena { gap: 8px; }
+  .result { min-height: 50px; }
+  .result p { margin: 2px 0; font-size: 0.85rem; }
+  #result-outcome { font-size: 1.2rem; }
 
-  .scoreboard {
-    gap: 14px;
-    margin-bottom: 6px;
-    font-size: 0.8rem;
-  }
-
-  .scoreboard span {
-    font-size: 1.15rem;
-  }
-
-  .panel {
-    padding: 7px 4px;
-    margin-bottom: 6px;
-    border-radius: 10px;
-  }
-
-  .hand {
-    gap: 4px;
-    padding-top: 5px;
-    min-height: calc(var(--cw) * 1.42 + 8px);
-  }
-
-  .label {
-    margin-top: 4px;
-    font-size: 0.75rem;
-  }
-
-  .center {
-    gap: 6px;
-  }
-
-  .arena {
-    gap: 8px;
-    min-height: calc(var(--cw) * 1.42);
-  }
-
-  .result {
-    min-height: 55px;
-  }
-
-  #result-outcome {
-    font-size: 1.2rem;
-  }
-
-  .result p {
-    margin: 2px 0;
-  }
-
-  .controls {
-    gap: 6px;
-  }
-
-  .btn {
-    min-height: 40px;
-    padding: 0 14px;
-    font-size: 0.9rem;
-  }
-}
-
-
-/* ---------- Short phones ----------
-   Helps keep the game from becoming too tall */
-@media (max-width: 480px) and (max-height: 850px) {
-  .table {
-    padding-top: 4px;
-    padding-bottom: 8px;
-  }
-
-  h1 {
-    margin-top: 0;
-    margin-bottom: 4px;
-  }
-
-  .scoreboard {
-    margin-bottom: 4px;
-  }
-
-  .panel {
-    padding-top: 5px;
-    padding-bottom: 5px;
-    margin-bottom: 4px;
-  }
-
-  .hand {
-    padding-top: 3px;
-  }
-
-  .center {
-    gap: 4px;
-  }
-
-  .result {
-    min-height: 48px;
-  }
-
-  .controls {
-    gap: 5px;
-  }
-
-  .btn {
-    min-height: 38px;
-  }
+  .controls { gap: 6px; }
+  .btn { min-height: 40px; padding: 0 14px; font-size: 0.9rem; }
 }
 
 
 /* ---------- Very small phones ---------- */
 @media (max-width: 360px) {
-  :root {
-    --cw: 50px;
-  }
-
-  .table {
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-
-  .hand {
-    gap: 3px;
-  }
-
-  .arena {
-    gap: 6px;
-  }
-
-  .controls {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .btn {
-    width: 100%;
-  }
-
-  .label {
-    font-size: 0.7rem;
-  }
+  .table { padding-left: 4px; padding-right: 4px; }
+  .hand { gap: 3px; }
+  .arena { gap: 6px; }
+  .btn { padding: 0 10px; font-size: 0.85rem; }
+  .label { font-size: 0.7rem; }
 }
 
 
-/* ---------- Landscape phones ---------- */
-@media (max-width: 850px) and (max-height: 500px) and (orientation: landscape) {
-  .table {
-    padding-top: 4px;
-    padding-bottom: 10px;
-  }
+/* ---------- Short screens (small laptops, landscape phones) ----------
+   Not enough height for three rows of cards, so the two hands sit side by side
+   and the dealer / played cards go in the middle column area on top. */
+@media (max-height: 560px) and (min-width: 600px) {
+  :root { --chrome: 175px; --cw: clamp(36px, min(8.2vw, calc((var(--vh) - var(--chrome)) / 2.9)), 80px); }
 
-  h1 {
-    margin: 0 0 4px;
-    font-size: 1.2rem;
-  }
+  .table { max-width: 980px; padding: 4px 10px 8px;
+    display: grid; grid-template-columns: 1fr 1fr;
+    grid-template-areas: "top top" "center center" "computer player" "controls controls";
+    column-gap: 8px; }
+  .top { grid-area: top; flex-direction: row; margin-bottom: 4px; }
+  h1 { font-size: 1.15rem; }
+  .table > .panel:nth-of-type(1) { grid-area: computer; }
+  .table > .panel.center { grid-area: center; }
+  .table > .panel:nth-of-type(3) { grid-area: player; }
+  .controls { grid-area: controls; }
 
-  .panel {
-    padding: 6px;
-    margin-bottom: 5px;
-  }
-
-  .hand {
-    padding-top: 3px;
-  }
-
-  .center {
-    grid-template-columns: auto 1fr;
-    grid-template-areas:
-      "deck arena"
-      "result result";
-    gap: 6px 10px;
-  }
-
-  .result {
-    min-height: 45px;
-  }
-
-  .controls {
-    gap: 5px;
-  }
-
-  .btn {
-    min-height: 36px;
-  }
+  .panel { padding: 4px 6px 6px; margin-bottom: 5px; }
+  h2 { margin-bottom: 2px; font-size: 0.85rem; }
+  .hand { padding-top: 2px; gap: 4px; min-height: calc(var(--cw) * 1.42 + 6px); }
+  .label { margin-top: 2px; min-height: 1em; }
+  .center { grid-template-columns: auto auto 1fr; grid-template-areas: "deck arena result"; gap: 4px 14px; }
+  .result { min-height: 0; }
+  .result p { margin: 1px 0; font-size: 0.85rem; }
+  #result-outcome { font-size: 1.1rem; }
+  .btn { min-height: 34px; padding: 0 14px; font-size: 0.88rem; }
 }
