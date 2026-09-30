@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RPS: Lucky Hand</title>
+  <link rel="stylesheet" href="rpslb.css">
+</head>
+<body>
+  <main class="table">
+    <h1>RPS: Lucky Hand</h1>
+
+    <section class="scoreboard" aria-label="Score">
+      <div><span id="score-player">0</span> You</div>
+      <div><span id="score-draws">0</span> Draws</div>
+      <div><span id="score-computer">0</span> Computer</div>
+    </section>
+
+    <!-- Computer hand (card backs) -->
+    <section class="panel">
+      <h2>Computer <span id="computer-count" class="count"></span></h2>
+      <div id="computer-hand" class="hand"></div>
+    </section>
+
+    <!-- Dealer deck, played cards and round result -->
+    <section class="panel center">
+      <div class="dealer">
+        <div id="deck" class="deck">
+          <div class="deck-card back-design"></div>
+          <div class="deck-card back-design"></div>
+          <div class="deck-card back-design"></div>
+        </div>
+        <p class="label">Dealer</p>
+      </div>
+      <div id="arena" class="arena"></div>
+      <div class="result" aria-live="polite">
+        <p id="result-plays"></p>
+        <p id="result-outcome"></p>
+        <button id="play-again" class="btn primary" hidden>Play Again</button>
+      </div>
+    </section>
+
+    <!-- Player hand -->
+    <section class="panel">
+      <h2>Player <span id="player-count" class="count"></span></h2>
+      <div id="player-hand" class="hand"></div>
+      <p id="switch-hint" class="label"></p>
+    </section>
+
+    <section class="controls">
+      <button id="switch" class="btn">Switch Card (1 available)</button>
+      <button id="confirm-switch" class="btn primary" hidden>Replace card</button>
+      <button id="reset" class="btn">Reset Game</button>
+    </section>
+  </main>
+
+  <script src="rpslb.js"></script>
+</body>
+</html>
