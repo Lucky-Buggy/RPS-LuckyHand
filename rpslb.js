@@ -25,6 +25,13 @@ let switchTargetIndex = null;  // card chosen for replacing
 let freshIndex = null;         // card that was just swapped (for the flip animation)
 let gameId = 0;                // lets us ignore old animations after a reset
 
+// NEW - stats for the current game. These are separate from "score" above.
+// Draws are never counted here, so they change neither wins nor losses.
+let stats = { wins: 0, losses: 0, winStreak: 0 };
+
+// NEW - audio is ON by default
+let soundOn = true;
+
 // ===== Page elements =====
 const playerHandEl = document.getElementById("player-hand");
 const computerHandEl = document.getElementById("computer-hand");
@@ -39,12 +46,91 @@ const confirmSwitchButton = document.getElementById("confirm-switch");
 const switchHintEl = document.getElementById("switch-hint");
 const deckEl = document.getElementById("deck");
 const arenaEl = document.getElementById("arena");
+const statWinrateEl = document.getElementById("stat-winrate");   // NEW (stats)
+const statRecordEl = document.getElementById("stat-record");
+const statStreakEl = document.getElementById("stat-streak");
+const soundToggleButton = document.getElementById("sound-toggle"); // NEW (audio)
 const resetModalEl = document.getElementById("reset-modal");
 const resetCancelButton = document.getElementById("reset-cancel");
 const resetConfirmButton = document.getElementById("reset-confirm");
 
 function wait(ms) {
   return new Promise(function (resolve) { setTimeout(resolve, ms); });
+}
+
+// ===== NEW: Sound effects =====
+// The files live in the audio/ folder (relative paths work on GitHub Pages).
+const SOUND_FILES = {
+  shuffle: "audio/shuffle.mp3",
+  deal: "audio/deal.mp3",
+  select: "audio/select.mp3",
+  flip: "audio/flip.mp3",
+  win: "audio/win.mp3",
+  lose: "audio/lose.mp3",
+  draw: "audio/draw.mp3",
+  switch: "audio/switch.mp3"
+};
+const sounds = {};            // name -> Audio object, loaded once
+let audioUnlocked = false;
+
+function loadSounds() {
+  Object.keys(SOUND_FILES).forEach(function (name) {
+    sounds[name] = new Audio(SOUND_FILES[name]);
+    sounds[name].preload = "auto";
+  });
+}
+
+// Plays one sound. It is only called from game events (a click, a deal, a result...),
+// never from the render functions, so each event plays its sound once.
+function playSound(name) {
+  if (!soundOn || !sounds[name]) return;
+  try {
+    const audio = sounds[name];
+    audio.muted = false;
+    audio.currentTime = 0; // restart from the beginning
+    const result = audio.play();
+    // Browsers may refuse to play before the first tap/click; ignore that quietly
+    if (result && result.catch) result.catch(function () {});
+  } catch (error) { /* audio not available: the game still works */ }
+}
+
+function stopAllSounds() {
+  Object.keys(sounds).forEach(function (name) {
+    try { sounds[name].pause(); sounds[name].currentTime = 0; } catch (error) {}
+  });
+}
+
+// Some phones only allow a sound to play after the player has touched the page once.
+// On the first touch/key press we silently "prime" every sound so later ones can play.
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  Object.keys(sounds).forEach(function (name) {
+    const audio = sounds[name];
+    try {
+      audio.muted = true;
+      const result = audio.play();
+      if (result && result.then) {
+        result.then(function () {
+          // still muted = nobody started it for real in the meantime, so stop the silent test
+          if (audio.muted) { audio.pause(); audio.currentTime = 0; audio.muted = false; }
+        }).catch(function () { audio.muted = false; });
+      }
+    } catch (error) { audio.muted = false; }
+  });
+}
+
+function updateSoundButton() {
+  const label = soundOn ? "Turn sound off" : "Turn sound on";
+  soundToggleButton.classList.toggle("off", !soundOn); // CSS shows the right icon
+  soundToggleButton.setAttribute("aria-label", label);
+  soundToggleButton.title = label;
+}
+
+function toggleSound() {
+  soundOn = !soundOn;
+  if (!soundOn) stopAllSounds(); // turning off cuts any sound that is still playing
+  updateSoundButton();
 }
 
 // ===== Card generation =====
@@ -143,6 +229,7 @@ function renderAll() {
   renderComputerHand();
   renderCounts();
   renderScore();
+  renderStats();
   renderSwitchControls();
 }
 
@@ -159,6 +246,37 @@ function updateScore(outcome) {
   else score.draws++;
 }
 
+// ===== NEW: Game stats =====
+function resetStats() {
+  stats = { wins: 0, losses: 0, winStreak: 0 };
+}
+
+// Call once per finished GAME (not per round) with "win", "lose" or "draw"
+function updateStats(outcome) {
+  if (outcome === "win") {
+    stats.wins++;
+    stats.winStreak++;
+  } else if (outcome === "lose") {
+    stats.losses++;
+    stats.winStreak = 0;
+  }
+  // a draw changes nothing
+}
+
+// Winrate = wins / (wins + losses) x 100, shown with at most one decimal (100%, 66.7%)
+function getWinRateText() {
+  const decided = stats.wins + stats.losses;
+  if (decided === 0) return "0%";
+  return Number((stats.wins / decided * 100).toFixed(1)) + "%";
+}
+
+function renderStats() {
+  statWinrateEl.textContent = getWinRateText();
+  statRecordEl.textContent = stats.wins + "-" + stats.losses;
+  statStreakEl.textContent = stats.winStreak;
+  statStreakEl.classList.toggle("hot", stats.winStreak > 0);
+}
+
 function getRoundMessage(outcome) {
   if (outcome === "win") return "You Win!";
   if (outcome === "lose") return "Computer Wins!";
@@ -170,6 +288,10 @@ function showFinalResult() {
   let outcomeClass = "draw";
   if (score.player > score.computer) { message = "You won the game!"; outcomeClass = "win"; }
   else if (score.computer > score.player) { message = "Computer won the game!"; outcomeClass = "lose"; }
+
+  // NEW: the game is over, so it now counts in the stats ("win", "lose" or "draw")
+  updateStats(outcomeClass);
+  renderStats();
 
   showResult(
     "Final score: " + score.player + " - " + score.computer + " (" + score.draws + " draws)",
@@ -183,6 +305,7 @@ function showFinalResult() {
 // Clicking a card either plays it or (in switch mode) selects it for replacing
 function onPlayerCardClick(index) {
   if (isDealing || isProcessing) return;
+  playSound("select"); // NEW
   if (switchMode) {
     switchTargetIndex = index;
     renderPlayerHand();
@@ -214,6 +337,7 @@ async function playRound(playerIndex) {
   await wait(500);
   if (myGame !== gameId) return;
   computerEl.classList.add("up"); // flip the computer's card
+  playSound("flip"); // NEW
 
   await wait(800);
   if (myGame !== gameId) return;
@@ -222,6 +346,7 @@ async function playRound(playerIndex) {
   computerEl.classList.add(outcome === "lose" ? "winner" : outcome === "win" ? "loser" : "tie");
   updateScore(outcome);
   renderScore();
+  playSound(outcome === "win" ? "win" : outcome === "lose" ? "lose" : "draw"); // NEW
   showResult(
     "You played " + CARD_NAME[playerCard] + "  ·  Computer played " + CARD_NAME[computerCard],
     getRoundMessage(outcome),
@@ -256,6 +381,7 @@ function confirmSwitch() {
   switchTargetIndex = null;
   renderAll();
   freshIndex = null;
+  playSound("switch"); // NEW
   showResult("Switched " + CARD_NAME[oldCard] + " for " + CARD_NAME[newCard] + ".", "", "");
 }
 
@@ -267,6 +393,7 @@ function dealOne(who) {
     const card = handEl.children[who === "player" ? dealtPlayer : dealtComputer];
     if (who === "player") dealtPlayer++; else dealtComputer++;
     renderCounts();
+    playSound("deal"); // NEW: one sound per dealt card
 
     // A temporary card back flies from the deck to the empty slot
     const from = deckEl.getBoundingClientRect();
@@ -304,6 +431,7 @@ async function dealCards(myGame) {
   renderAll();
 
   deckEl.classList.add("shuffling");
+  playSound("shuffle"); // NEW
   await wait(950);
   deckEl.classList.remove("shuffling");
 
@@ -327,6 +455,8 @@ function startNewGame() {
   playerHand = generateHand();
   computerHand = generateHand();
   score = { player: 0, computer: 0, draws: 0 };
+  // Stats are NOT reset here, so Winrate / W-L / Winstreak carry over between games.
+  // (They still start fresh when the page is refreshed. Call resetStats() here to reset them each game.)
   isProcessing = false;
   switchUsed = false;
   switchMode = false;
@@ -368,8 +498,15 @@ document.addEventListener("keydown", function (e) {
   }
 });
 
+// NEW: audio button + first-touch unlock
+soundToggleButton.addEventListener("click", toggleSound);
+document.addEventListener("pointerdown", unlockAudio, { once: true });
+document.addEventListener("keydown", unlockAudio, { once: true });
+
 playAgainButton.addEventListener("click", startNewGame);
 switchButton.addEventListener("click", toggleSwitchMode);
 confirmSwitchButton.addEventListener("click", confirmSwitch);
 
+loadSounds();
+updateSoundButton();
 startNewGame();
