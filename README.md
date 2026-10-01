@@ -8,19 +8,18 @@ A card-based Rock Paper Scissors game where you battle the computer using random
 [Play RPS: Lucky Hand](https://lucky-buggy.github.io/RPS-LuckyHand/)
 
 ## Features
-5 random cards for each player
-Rock, Paper, Scissors gameplay
-Played cards are removed
-Random computer moves
-One-time Switch Card
-Win, loss, draw, and win streak stats
-Win rate tracking
-Shuffle, deal, flip, and result sounds
-Audio on/off control
-Card dealing animations
-Reset confirmation
-Responsive design
-Dark theme
+•5 random cards for each player.
+•Rock, Paper, Scissors gameplay.
+•Played cards are removed.
+•Random computer moves.
+•One-time Switch Card.
+•Win, loss, draw, and win streak stats.
+•Win rate tracking.
+•Shuffle, deal, flip, and result sounds.
+•Audio on/off control.
+•Card dealing animations.
+•Reset confirmation.
+
 
 ## How to Play
 Start the game and wait for the cards to be dealt.
@@ -36,4 +35,4 @@ HTML
 CSS
 JavaScript
 
-## Lucky-Buggy
+# Lucky-Buggy
