@@ -16,6 +16,22 @@
         <div><span id="score-draws">0</span> Draws</div>
         <div><span id="score-computer">0</span> Computer</div>
       </section>
+
+      <!-- NEW: game stats (reset with every new game) -->
+      <section class="stats" aria-label="Game stats">
+        <div>Winrate <span id="stat-winrate">0%</span></div>
+        <div>W-L <span id="stat-record">0-0</span></div>
+        <div>Winstreak <span id="stat-streak">0</span></div>
+      </section>
+
+      <!-- NEW: sound on/off button (the icon is an inline SVG, no emoji) -->
+      <button id="sound-toggle" class="btn sound-btn" type="button" aria-label="Turn sound off" title="Turn sound off">
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+          <path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z" fill="currentColor"/>
+          <path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18.2 6.3a8 8 0 0 1 0 11.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <path class="mute" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
     </header>
 
     <!-- Computer hand (card backs) -->
@@ -70,4 +86,4 @@
 
   <script src="rpslb.js"></script>
 </body>
-</html>
+  </html>
