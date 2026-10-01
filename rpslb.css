@@ -7,7 +7,7 @@
   --accent: #d4a24c;   /* the one accent colour */
   --good: #6fbf8a;
   --vh: 100vh;                       /* fallback for browsers without dvh */
-  --chrome: 335px;                   /* height of everything that is NOT a card (title, labels, buttons...) */
+  --chrome: 355px;                   /* height of everything that is NOT a card (title, labels, buttons...) */
   /* card width: everything scales from this. It is limited by the screen width AND height,
      so the whole table fits in the window without scrolling. */
   --cw: clamp(40px, min(15.5vw, calc((var(--vh) - var(--chrome)) / 4.26)), 92px);
@@ -188,7 +188,7 @@ button.card { cursor: pointer; }
 
 /* ---------- Phones (portrait) ---------- */
 @media (max-width: 480px) {
-  :root { --chrome: 330px; }
+  :root { --chrome: 350px; }
 
   .table { padding: 6px 7px 10px; }
   .top { flex-direction: column; gap: 2px; margin-bottom: 6px; }
@@ -227,7 +227,7 @@ button.card { cursor: pointer; }
    Not enough height for three rows of cards, so the two hands sit side by side
    and the dealer / played cards go in the middle column area on top. */
 @media (max-height: 560px) and (min-width: 600px) {
-  :root { --chrome: 175px; --cw: clamp(36px, min(8.2vw, calc((var(--vh) - var(--chrome)) / 2.9)), 80px); }
+  :root { --chrome: 195px; --cw: clamp(36px, min(8.2vw, calc((var(--vh) - var(--chrome)) / 2.9)), 80px); }
 
   .table { max-width: 980px; padding: 4px 10px 8px;
     display: grid; grid-template-columns: 1fr 1fr;
@@ -249,4 +249,44 @@ button.card { cursor: pointer; }
   .result p { margin: 1px 0; font-size: 0.85rem; }
   #result-outcome { font-size: 1.1rem; }
   .btn { min-height: 34px; padding: 0 14px; font-size: 0.88rem; }
+}
+
+
+/* =========================================================
+   NEW: GAME STATS + SOUND BUTTON
+   ========================================================= */
+.top { position: relative; padding-right: 52px; }   /* room for the sound button */
+
+/* Stats row: sits under the title / score line */
+.stats {
+  flex: 1 0 100%; margin-right: -52px;              /* centred under the whole header */
+  display: flex; justify-content: center; gap: 18px;
+  color: var(--muted); font-size: 0.8rem;
+}
+.stats span { margin-left: 4px; font-weight: 600; color: var(--text); }
+.stats span.hot { color: var(--accent); }           /* streak glows while it is above 0 */
+
+/* Sound button: square, touch friendly, accent colour = ON, muted colour = OFF */
+.btn.sound-btn {
+  position: absolute; top: 0; right: 0;
+  width: 44px; height: 44px; min-height: 0; padding: 0;
+  display: grid; place-items: center;
+  color: var(--accent);
+}
+.sound-btn svg { display: block; }
+.sound-btn .mute { display: none; }
+.sound-btn.off { color: var(--muted); background: var(--panel); }
+.sound-btn.off .wave { display: none; }
+.sound-btn.off .mute { display: block; }
+.sound-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (max-width: 480px) {
+  .top { padding-right: 0; }
+  .stats { margin-right: 0; gap: 14px; font-size: 0.75rem; }
+  .btn.sound-btn { width: 40px; height: 40px; }
+}
+@media (max-height: 560px) and (min-width: 600px) {
+  .btn.sound-btn { width: 36px; height: 36px; }
+  .top { padding-right: 44px; }
+  .stats { margin-right: -44px; }
 }
